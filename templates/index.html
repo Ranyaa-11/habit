@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Habit Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>🧘 My Habit Tracker</h1>
+        <a href="/add" class="btn">➕ Add Habit</a>
+        <ul class="habit-list">
+            {% for habit in habits %}
+            <li>
+                <strong>{{ habit[1] }}</strong> — Streak: {{ habit[3] }}
+                <a href="/done/{{ habit[0] }}" class="done-btn">✔️ Done</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>
