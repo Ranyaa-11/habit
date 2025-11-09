@@ -1,24 +1,38 @@
 from flask import Flask, render_template, request, redirect
 import sqlite3
+import os
 from datetime import date
 
 app = Flask(__name__)
 
+# Use /tmp for serverless environments (Vercel, AWS Lambda, etc.)
+# In local development, use habits.db in the project directory
+def get_db_path():
+    if os.path.exists('/tmp'):
+        return '/tmp/habits.db'
+    return 'habits.db'
+
 def init_db():
-    conn = sqlite3.connect('habits.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS habits (
-                    id INTEGER PRIMARY KEY,
-                    name TEXT,
-                    last_done TEXT,
-                    streak INTEGER
-                )''')
-    conn.commit()
-    conn.close()
+    try:
+        db_path = get_db_path()
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS habits (
+                        id INTEGER PRIMARY KEY,
+                        name TEXT,
+                        last_done TEXT,
+                        streak INTEGER
+                    )''')
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+        raise
 
 @app.route('/')
 def index():
-    conn = sqlite3.connect('habits.db')
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path)
     habits = conn.execute('SELECT * FROM habits').fetchall()
     conn.close()
     return render_template('index.html', habits=habits)
@@ -27,7 +41,8 @@ def index():
 def add():
     if request.method == 'POST':
         name = request.form['name']
-        conn = sqlite3.connect('habits.db')
+        db_path = get_db_path()
+        conn = sqlite3.connect(db_path)
         conn.execute('INSERT INTO habits (name, last_done, streak) VALUES (?, ?, ?)',
                      (name, '', 0))
         conn.commit()
@@ -38,9 +53,10 @@ def add():
 @app.route('/done/<int:id>')
 def done(id):
     today = str(date.today())
-    conn = sqlite3.connect('habits.db')
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path)
     habit = conn.execute('SELECT * FROM habits WHERE id=?', (id,)).fetchone()
-    if habit[2] != today:
+    if habit and habit[2] != today:
         streak = habit[3] + 1
         conn.execute('UPDATE habits SET last_done=?, streak=? WHERE id=?',
                      (today, streak, id))
